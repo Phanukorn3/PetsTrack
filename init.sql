@@ -1,2 +1,3 @@
 CREATE DATABASE auth_db;
 CREATE DATABASE pet_db;
+CREATE DATABASE tracking_db;

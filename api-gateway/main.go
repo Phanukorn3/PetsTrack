@@ -1,6 +1,6 @@
 package main
 
-import(
+import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -45,7 +45,7 @@ func RequireAuth(c *gin.Context) {
 		}
 
 		userID := claims["user_id"]
-		
+
 		c.Request.Header.Set("X-User-Id", fmt.Sprintf("%v", userID))
 
 		c.Next()
@@ -62,17 +62,33 @@ func main() {
 
 	authServiceURL := os.Getenv("AUTH_SERVICE_URL")
 	petServiceURL := os.Getenv("PET_SERVICE_URL")
+	trackingServiceURL := os.Getenv("TRACKING_SERVICE_URL")
 
 	authGroup := r.Group("/user")
 	{
-		authGroup.Any("/*path", newProxy(authServiceURL)) 
+		authGroup.Any("/*path", newProxy(authServiceURL))
 	}
 
 	petGroup := r.Group("/pets")
-	
+
 	petGroup.Use(RequireAuth)
 	{
 		petGroup.Any("/*path", newProxy(petServiceURL))
+	}
+
+	trackingGroup := r.Group("/tracking")
+	trackingGroup.Use(RequireAuth)
+	{
+		// จะส่งต่อทุก Request ที่ขึ้นต้นด้วย /tracking ไปยัง Tracking Service
+		trackingGroup.Any("/*path", newProxy(trackingServiceURL))
+	}
+
+	notiServiceURL := "http://notification-service:8080"
+
+	wsGroup := r.Group("/ws")
+	{
+		// ให้ Gateway ส่งต่อการเชื่อมต่อ WebSocket ไปที่ Noti Service
+		wsGroup.Any("", newProxy(notiServiceURL))
 	}
 
 	port := os.Getenv("PORT")

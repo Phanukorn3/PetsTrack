@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Tracker - ส่งพิกัด</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .data {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>อุปกรณ์ติดตาม (ฝั่งมือถือ)</h2>
+    <p>สถานะ: <span id="status" style="color: blue;">รอเริ่มต้น...</span></p>
+    <p>Latitude: <span id="lat" class="data">-</span></p>
+    <p>Longitude: <span id="lng" class="data">-</span></p>
+
+    <script>
+        // 1. นำ URL จาก ngrok มาใส่ที่นี่ พร้อมต่อท้ายด้วย /location
+        const API_URL = "/tracking/location";
+        const PET_ID = "dog_001"; // จำลอง ID ของสัตว์เลี้ยง
+
+        function sendLocation() {
+            if (!navigator.geolocation) {
+                document.getElementById('status').innerText = "เบราว์เซอร์นี้ไม่รองรับ GPS";
+                return;
+            }
+
+            // ดึงพิกัด GPS
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
+                    document.getElementById('lat').innerText = lat;
+                    document.getElementById('lng').innerText = lng;
+                    document.getElementById('status').innerText = "กำลังส่งข้อมูล...";
+
+                    try {
+                        // ส่งข้อมูลไปยัง Go Tracking Service
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                pet_id: PET_ID,
+                                latitude: lat,
+                                longitude: lng
+                            })
+                        });
+
+                        if (response.ok) {
+                            document.getElementById('status').innerText = "ส่งข้อมูลสำเร็จ (Real-time)";
+                            document.getElementById('status').style.color = "green";
+                        } else {
+                            document.getElementById('status').innerText = "ส่งข้อมูลล้มเหลว (API Error)";
+                            document.getElementById('status').style.color = "red";
+                        }
+                    } catch (error) {
+                        document.getElementById('status').innerText = "ส่งข้อมูลล้มเหลว (เครือข่าย)";
+                        document.getElementById('status').style.color = "red";
+                        console.error("Error:", error);
+                    }
+                },
+                (error) => {
+                    document.getElementById('status').innerText = "ไม่สามารถอ่านพิกัดได้: " + error.message;
+                    document.getElementById('status').style.color = "red";
+                },
+                { enableHighAccuracy: true, maximumAge: 0 } // บังคับขอพิกัดแม่นยำสูง
+            );
+        }
+
+        // เริ่มลูปส่งข้อมูลทุกๆ 5 วินาที (5000 มิลลิวินาที)
+        setInterval(sendLocation, 5000);
+        sendLocation(); // เรียกครั้งแรกทันทีที่เปิดหน้าเว็บ
+    </script>
+</body>
+
+</html>
