@@ -1,1 +1,1 @@
-# In this project, I worked on the notification service, implemented tracing
+# Developed the frontend, implemented a notification service, and added distributed tracing for monitoring the microservices system.
